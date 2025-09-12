@@ -5,9 +5,11 @@ Salva dati in ~/fitness_tracker/profile.json e ~/fitness_tracker/logs.csv
 import os
 import json
 import csv
-import customtkinter as ctk
-from PIL import Image
-from customtkinter import CTkImage
+import sys
+
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QFormLayout
+)
 
 from datetime import date, datetime
 try:
@@ -313,42 +315,83 @@ def clean_logs_file():
     except Exception as e:
         print("Errore durante la pulizia dei log:", e)
 
-"""
---- Funzioni GUI ---
-"""
 
 """
-show_profile è una funzione che mostra le informazioni del profilo salvato in una finestra popup
+--- GUI ---
 """
 
-def show_profile():
-    profile = load_profile()
-    if profile:
-        info = f"Nome: {profile['name']}\nEtà: {profile['age']}\nSesso: {profile['sex']}\nPeso: {profile['weight']} kg"
-        messagebox.showinfo("Profilo", info)
-    else:
-        messagebox.showinfo("Profilo", "Nessun profilo salvato.")
+class FitnessTracker(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Fitness Tracker")
+        self.setGeometry(100,100,400,500)
+        self.layout = QVBoxLayout()
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+        self.layout.addWidget(QLabel("<h2>Fiteness Tracker</h2>"))
 
-"""
-Creiamo la finestra principale dell'applicazione (app), il cui titolo è Fitness Tracker e la cui dimensione
-è 400x500 pixels. app diventa il contenitore di tutti i widget
-"""
+        profile_btn = QPushButton("Mostra Profilo")
+        profile_btn.clicked.connect(self.show_profile)
+        self.layout.addWidget(profile_btn)
 
-app = ctk.CTk()
-app.title("Fitness Tracker")
-app.geometry("400x500")
+        self.form_layout = QFormLayout()
+        self.weight_input = QLineEdit()
+        self.calories_input = QLineEdit()
+        self.notes_input = QLineEdit()
+        self.form_layout.addRow("Peso (kg):", self.weight_input)
+        self.form_layout.addRow("Calorie:", self.calories_input)
+        self.form_layout.addRow("Note:", self.notes_input)
+        self.layout.addLayout(self.form_layout)
 
-frame = ctk.CTkFrame(app)
-frame.pack(pady=20, padx=20, fill="both", expand=True)
+        add_log_btn = QPushButton("Aggiungi Log")
+        add_log_btn.clicked.connect(self.add_log)
+        self.layout.addWidget(add_log_btn)
 
-# Titolo
+        graph_btn = QPushButton("Mostra Grafico Peso")
+        add_log_btn.clicked.connect(self.show_graph)
+        self.layout.addWidget(graph_btn)
 
-ctk.CTkLabel(frame, text="Fitness Tracker", font=("Arial", 20, "bold")).pack(pady=10)
+        self.setLayout(self.layout)
 
-app.mainloop()
+    def show_profile(self):
+        profile = load_profile()
+        if profile:
+            info = (f"Nome: {profile.get('name', '')}\n"
+                    f"Età: {profile.get('age','')}\n"
+                    f"Sesso: {profile.get('sex','')}\n"
+                    f"Peso: {profile.get('weight_kg','')}")
+            QMessageBox.information(self, "Profilo", info)
+        else:
+            QMessageBox.information(self, "Profilo", "Nessun profilo salvato.")
+    
+    def add_log(self):
+        try:
+            w = float(self.weight_input.text())
+            c = float(self.calories_input.text())
+        except ValueError:
+            QMessageBox.warning(self, "Errore", "Peso o calorie non validi")
+            return
+        notes = self.notes_input.text()
+        add_log_entry(w,c, notes)
+        QMessageBox.information(self, "Fatto", "Log aggiunto!")
+        self.weight_input.clear()
+        self.calories_input.clear()
+        self.notes_input.clear()
+
+    def show_graph(self):
+        df = load_logs()
+        if df.empty():
+            QMessageBox.information(self, "Grafico", "Nessun dato da mostrare")
+            plt.plot(df.index, df['weight_kg'])
+            plt.title("Andamento Peso (media settimanale)")
+            plt.xlabel("Data")
+            plt.ylabel("Peso (kg)")
+            plt.grid(True)
+            plt.show()
+
+app = QApplication(sys.argv)
+window = FitnessTracker()
+window.show()
+sys.exit(app.exec_())
 
 """
 main è la funzione che gestisce tutta l'interazione con l'utente. Permette di:

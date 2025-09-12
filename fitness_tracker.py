@@ -314,110 +314,6 @@ def clean_logs_file():
         print("Errore durante la pulizia dei log:", e)
 
 """
---- GUI ---
-"""
-
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
-
-app = ctk.CTk()
-app.title("Fitness Tracker")
-app.geometry("500x600")
-
-"""
---- Titolo ---
-"""
-
-title = ctk.CTkLabel(app, text="Fitness Tracker", font=("Arial", 24, "bold"))
-title.pack(pady=20)
-
-
-"""
---- Icone ---
-"""
-
-icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
-if os.path.exists(icon_path):
-    icon_img = CTkImage(Image.open(icon_path), size=(24,24))
-else:
-    icon_img = None
-
-"""
---- Profilo ---
-"""
-
-def gui_load_profile():
-    profile = load_profile()
-    if profile:
-        info = (
-            f"Nome: {profile['name']}\n"
-            f"Età: {profile['age']}\n"
-            f"Sesso: {profile['sex']}\n"
-            f"Altezza: {profile['height_cm']} cm\n"
-            f"Peso: {profile['weight_kg']} kg\n"
-            f"BMI: {calculate_bmi(float(profile['weight_kg']), float(profile['height_cm'])):.2f}"
-        )
-        messagebox.showinfo("Profilo", info)
-    else:
-        messagebox.showinfo("Info", "Nessun profilo salvato.")
-
-profile_btn = ctk.CTkButton(app, text="Mostra Profilo", command=gui_load_profile)
-profile_btn.pack(pady=10, padx=20, fill="x")
-
-"""
---- Inserimento Log ---
-"""
-
-frame = ctk.CTkFrame(app)
-frame.pack(pady=20, padx=20, fill="both", expand=True)
-
-ctk.CTkLabel(frame, text="Peso (kg):").pack(anchor="w", pady=(10,0), padx=10)
-weight_entry = ctk.CTkEntry(frame)
-weight_entry.pack(pady=5, padx=10, fill="x")
-
-ctk.CTkLabel(frame, text="Calorie assunte:").pack(anchor="w", pady=(10,0), padx=10)
-calories_entry = ctk.CTkEntry(frame)
-calories_entry.pack(pady=5, padx=10, fill="x")
-
-ctk.CTkLabel(frame, text="Note:").pack(anchor="w", pady=(10,0), padx=10)
-notes_entry = ctk.CTkEntry(frame)
-notes_entry.pack(pady=5, padx=10, fill="x")
-
-def gui_add_log():
-    try:
-        w = float(weight_entry.get()) if weight_entry.get() else None 
-    except ValueError:
-        messagebox.showerror("Errore", "Peso non valido")
-        return
-    try:
-        c = float(calories_entry.get()) if calories_entry.get() else 0 
-    except ValueError:
-        messagebox.showerror("Errore", "Calorie non valide")
-        return
-    
-    notes = notes_entry.get() or ""
-    add_log_entry(date_str=date.today().isoformat(), weight=w, calories_in=c, calories_burned=0, notes=notes)
-    messagebox.showinfo("Fatto", "Log aggiunto!")
-    weight_entry.delete(0, "end")
-    calories_entry.delete(0, "end")
-    notes_entry.delete(0, "end")
-
-add_btn = ctk.CTkButton(frame, text="Aggiungi Log", command=gui_add_log)
-add_btn.pack(pady=15, padx=10, fill="x")
-
-"""
---- Pulsante grafico ---
-"""
-graph_btn = ctk.CTkButton(app, text="Mostra Grafico Peso", command=plot_weekly_weight)
-graph_btn.pack(pady=10, padx=20, fill="x")
-
-"""
---- Avvio GUI ---
-"""
-
-app.mainloop()
-
-"""
 main è la funzione che gestisce tutta l'interazione con l'utente. Permette di:
 mostrare profilo e statistiche,
 aggiornare il profilo,
@@ -426,7 +322,6 @@ mostrare grafico settimanale del peso
 uscire dal programma
 """
 
-"""
 def main():
     ensure_data_dir()
     ensure_logs_file()
@@ -471,4 +366,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    """

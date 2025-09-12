@@ -314,6 +314,43 @@ def clean_logs_file():
         print("Errore durante la pulizia dei log:", e)
 
 """
+--- Funzioni GUI ---
+"""
+
+"""
+show_profile è una funzione che mostra le informazioni del profilo salvato in una finestra popup
+"""
+
+def show_profile():
+    profile = load_profile()
+    if profile:
+        info = f"Nome: {profile['name']}\nEtà: {profile['age']}\nSesso: {profile['sex']}\nPeso: {profile['weight']} kg"
+        messagebox.showinfo("Profilo", info)
+    else:
+        messagebox.showinfo("Profilo", "Nessun profilo salvato.")
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
+"""
+Creiamo la finestra principale dell'applicazione (app), il cui titolo è Fitness Tracker e la cui dimensione
+è 400x500 pixels. app diventa il contenitore di tutti i widget
+"""
+
+app = ctk.CTk()
+app.title("Fitness Tracker")
+app.geometry("400x500")
+
+frame = ctk.CTkFrame(app)
+frame.pack(pady=20, padx=20, fill="both", expand=True)
+
+# Titolo
+
+ctk.CTkLabel(frame, text="Fitness Tracker", font=("Arial", 20, "bold")).pack(pady=10)
+
+app.mainloop()
+
+"""
 main è la funzione che gestisce tutta l'interazione con l'utente. Permette di:
 mostrare profilo e statistiche,
 aggiornare il profilo,
@@ -321,7 +358,7 @@ aggiungere log giornalieri,
 mostrare grafico settimanale del peso
 uscire dal programma
 """
-
+"""
 def main():
     ensure_data_dir()
     ensure_logs_file()
@@ -366,3 +403,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+"""

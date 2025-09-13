@@ -1,93 +1,77 @@
-from fitness_tracker import (
-    load_logs, load_profile, input_profile, calculate_bmi, bmi_category, bmr_mifflin, tdee, ensure_data_dir, 
-    ensure_logs_file, add_log_entry, plot_weekly_weight, show_profile_and_stats, clean_logs_file
-)
-import sys
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QFormLayout
-)
-from datetime import date, datetime
-try:
-    import pandas as pd
-except Exception:
-    pd = None
-import matplotlib.pyplot as plt
+import flet as ft
+import fitness_tracker as ft_tracker
+from datetime import date
 
-"""
---- GUI ---
-"""
+def main(page: ft.Page):
+    page.title = "Fitness Tracker"
+    page.window_width = 600
+    page.window_height = 500
 
-class FitnessTracker(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Fitness Tracker")
-        self.setGeometry(100,100,400,500)
-        self.layout = QVBoxLayout()
+    # Carica profilo
+    profile = ft_tracker.load_profile()
+    if profile is None:
+        profile = ft_tracker.input_profile()
 
-        self.layout.addWidget(QLabel("<h2>Fiteness Tracker</h2>"))
+    # --- Input Profilo ---
+    name = ft.TextField(label="Nome", value=profile.get('name'))
+    age = ft.TextField(label="Età", value=str(profile.get('age')))
+    sex = ft.TextField(label="Sesso (M/F)", value=profile.get('sex'))
+    height = ft.TextField(label="Altezza (cm)", value=str(profile.get('height_cm')))
+    weight = ft.TextField(label="Peso (kg)", value=str(profile.get('weight_kg')))
+    goal = ft.TextField(label="Obiettivo peso", value=str(profile.get('goal_weight') or 0))
+    activity = ft.TextField(label="Attività", value=profile.get('activity'))
 
-        profile_btn = QPushButton("Mostra Profilo")
-        profile_btn.clicked.connect(self.show_profile)
-        self.layout.addWidget(profile_btn)
+    def save_profile_click(e):
+        profile.update({
+            'name': name.value,
+            'age': int(age.value),
+            'sex': sex.value,
+            'height_cm': float(height.value),
+            'weight_kg': float(weight.value),
+            'goal_weight': float(goal.value),
+            'activity': activity.value
+        })
+        ft_tracker.save_profile(profile)
+        page.snack_bar = ft.SnackBar(ft.Text("Profilo salvato!"))
+        page.snack_bar.open = True
+        page.update()
 
-        self.form_layout = QFormLayout()
-        self.weight_input = QLineEdit()
-        self.calories_input = QLineEdit()
-        self.notes_input = QLineEdit()
-        self.form_layout.addRow("Peso (kg):", self.weight_input)
-        self.form_layout.addRow("Calorie:", self.calories_input)
-        self.form_layout.addRow("Note:", self.notes_input)
-        self.layout.addLayout(self.form_layout)
+    save_btn = ft.ElevatedButton("Salva Profilo", on_click=save_profile_click)
 
-        add_log_btn = QPushButton("Aggiungi Log")
-        add_log_btn.clicked.connect(self.add_log)
-        self.layout.addWidget(add_log_btn)
+    # --- Input Log ---
+    log_weight = ft.TextField(label="Peso (kg)")
+    cal_in = ft.TextField(label="Calorie in")
+    cal_out = ft.TextField(label="Calorie out")
+    notes = ft.TextField(label="Note")
 
-        graph_btn = QPushButton("Mostra Grafico Peso")
-        add_log_btn.clicked.connect(self.show_graph)
-        self.layout.addWidget(graph_btn)
+    def add_log_click(e):
+        w = float(log_weight.value) if log_weight.value else None
+        c_in_val = float(cal_in.value) if cal_in.value else 0
+        c_out_val = float(cal_out.value) if cal_out.value else 0
+        ft_tracker.add_log_entry(weight=w, calories_in=c_in_val, calories_burned=c_out_val, notes=notes.value)
+        if w:
+            profile['weight_kg'] = w
+            ft_tracker.save_profile(profile)
+        page.snack_bar = ft.SnackBar(ft.Text("Log aggiunto!"))
+        page.snack_bar.open = True
+        page.update()
+        log_weight.value = ""
+        cal_in.value = ""
+        cal_out.value = ""
+        notes.value = ""
+        page.update()
 
-        self.setLayout(self.layout)
+    add_log_btn = ft.ElevatedButton("Aggiungi Log", on_click=add_log_click)
 
-    def show_profile(self):
-        profile = load_profile()
-        if profile:
-            info = (f"Nome: {profile.get('name', '')}\n"
-                    f"Età: {profile.get('age','')}\n"
-                    f"Sesso: {profile.get('sex','')}\n"
-                    f"Peso: {profile.get('weight_kg','')}")
-            QMessageBox.information(self, "Profilo", info)
-        else:
-            QMessageBox.information(self, "Profilo", "Nessun profilo salvato.")
-    
-    def add_log(self):
-        try:
-            w = float(self.weight_input.text())
-            c = float(self.calories_input.text())
-        except ValueError:
-            QMessageBox.warning(self, "Errore", "Peso o calorie non validi")
-            return
-        notes = self.notes_input.text()
-        add_log_entry(w,c, notes)
-        QMessageBox.information(self, "Fatto", "Log aggiunto!")
-        self.weight_input.clear()
-        self.calories_input.clear()
-        self.notes_input.clear()
+    # Layout
+    profile_col = ft.Column([
+        ft.Text("Profilo", weight="bold"),
+        name, age, sex, height, weight, goal, activity, save_btn,
+        ft.Divider(),
+        ft.Text("Aggiungi Log", weight="bold"),
+        log_weight, cal_in, cal_out, notes, add_log_btn
+    ], spacing=10, expand=True)
 
-    def show_graph(self):
-        df = load_logs()
-        if df.empty():
-            QMessageBox.information(self, "Grafico", "Nessun dato da mostrare")
-            return
-        df = df.groupby(pd.Grouper(key='date', freq='W')).mean()
-        plt.plot(df.index, df['weight_kg'])
-        plt.title("Andamento Peso (media settimanale)")
-        plt.xlabel("Data")
-        plt.ylabel("Peso (kg)")
-        plt.grid(True)
-        plt.show()
+    page.add(profile_col)
 
-app = QApplication(sys.argv)
-window = FitnessTracker()
-window.show()
-sys.exit(app.exec_())
+ft.app(target=main, view=ft.WEB_BROWSER)
